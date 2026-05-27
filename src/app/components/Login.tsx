@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 
+const API_BASE = (import.meta as any).env.VITE_API_BASE ?? 'http://localhost:4000';
+
 interface LoginProps {
   onLogin: (username: string, role: 'admin' | 'dentist' | 'receptionist') => void;
 }
@@ -17,7 +19,7 @@ export function Login({ onLogin }: LoginProps) {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:4000/api/users/login', {
+      const res = await fetch(`${API_BASE}/api/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })

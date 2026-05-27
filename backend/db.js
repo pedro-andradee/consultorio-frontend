@@ -2,10 +2,10 @@ import sql from 'mssql';
 
 const getConfig = () => {
   return {
-    server: process.env.DB_SERVER || 'srv-consultorio-us.database.windows.net',
-    database: process.env.DB_DATABASE || 'Consultorio_Odontologico',
-    user: process.env.DB_USER || 'consultorio',
-    password: process.env.DB_PASSWORD || 'Y6t5r4e3w2q1',
+    server: process.env.DB_SERVER ,
+    database: process.env.DB_DATABASE ,
+    user: process.env.DB_USER ,
+    password: process.env.DB_PASSWORD,
     port: Number(process.env.DB_PORT || 1433),
     options: {
       encrypt: (process.env.DB_ENCRYPT || 'true') === 'true',
