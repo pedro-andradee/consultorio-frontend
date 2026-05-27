@@ -7,18 +7,23 @@ const service = new ReportsService();
 
 const handle = (fn) => async (req, res) => {
     try {
-        const data = await fn();
+        const { dateFrom, dateTo } = req.query;
+        const filter = {
+            dateFrom: dateFrom || null,
+            dateTo:   dateTo   || null,
+        };
+        const data = await fn(filter);
         res.json(data);
     } catch (err) {
         res.status(500).json({ message: 'Erro ao gerar relatório', error: err.message });
     }
 };
 
-router.get('/treatments-count',   authenticateToken, authorizeRole('admin'), handle(() => service.treatmentsCount()));
-router.get('/treatments-revenue', authenticateToken, authorizeRole('admin'), handle(() => service.treatmentsRevenue()));
-router.get('/treatments-cost',    authenticateToken, authorizeRole('admin'), handle(() => service.treatmentsCost()));
-router.get('/patient-profiles',   authenticateToken, authorizeRole('admin'), handle(() => service.patientProfiles()));
-router.get('/return-rate',        authenticateToken, authorizeRole('admin'), handle(() => service.returnRate()));
-router.get('/abandonment',        authenticateToken, authorizeRole('admin'), handle(() => service.abandonment()));
+router.get('/treatments-count',   authenticateToken, authorizeRole('admin'), handle(f => service.treatmentsCount(f)));
+router.get('/treatments-revenue', authenticateToken, authorizeRole('admin'), handle(f => service.treatmentsRevenue(f)));
+router.get('/treatments-cost',    authenticateToken, authorizeRole('admin'), handle(f => service.treatmentsCost(f)));
+router.get('/patient-profiles',   authenticateToken, authorizeRole('admin'), handle(f => service.patientProfiles(f)));
+router.get('/return-rate',        authenticateToken, authorizeRole('admin'), handle(f => service.returnRate(f)));
+router.get('/abandonment',        authenticateToken, authorizeRole('admin'), handle(f => service.abandonment(f)));
 
 export default router;

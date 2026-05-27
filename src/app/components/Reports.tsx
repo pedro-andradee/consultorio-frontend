@@ -3,7 +3,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
-import { BarChart3, TrendingUp, Calculator, Users, Repeat, XCircle, ArrowLeft, Eye } from 'lucide-react';
+import { BarChart3, TrendingUp, Calculator, Users, Repeat, XCircle, ArrowLeft, Eye, CalendarDays } from 'lucide-react';
 
 const API_BASE = (import.meta as any).env.VITE_API_BASE ?? 'http://localhost:4000';
 
@@ -22,27 +22,40 @@ function shortLabel(label: string, max = 14) {
     return label.length > max ? label.slice(0, max) + '…' : label;
 }
 
+function toISO(d: Date) {
+    return d.toISOString().split('T')[0];
+}
+
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#ec4899'];
 
-function useReport<T>(endpoint: string) {
+interface DateFilter { dateFrom: string; dateTo: string }
+
+function useReport<T>(endpoint: string, filter: DateFilter) {
     const [data, setData] = useState<T | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        fetch(`${API_BASE}/api/reports/${endpoint}`, { headers: authHeaders() })
+        setLoading(true);
+        setData(null);
+        setError(null);
+        const params = new URLSearchParams();
+        if (filter.dateFrom) params.set('dateFrom', filter.dateFrom);
+        if (filter.dateTo)   params.set('dateTo',   filter.dateTo);
+        const qs = params.toString() ? `?${params}` : '';
+        fetch(`${API_BASE}/api/reports/${endpoint}${qs}`, { headers: authHeaders() })
             .then(r => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 return r.json();
             })
             .then(d => { setData(d); setLoading(false); })
             .catch(e => { setError(e.message); setLoading(false); });
-    }, [endpoint]);
+    }, [endpoint, filter.dateFrom, filter.dateTo]);
 
     return { data, loading, error };
 }
 
-function Card({ title, children }: { title: string; kiq?: string; children: React.ReactNode }) {
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <div className="bg-white rounded-lg shadow p-6">
             <h3 className="mb-4 text-lg font-semibold text-gray-900">{title}</h3>
@@ -59,10 +72,10 @@ function Err({ msg }: { msg: string }) {
     return <div className="h-32 flex items-center justify-center text-red-500 text-sm">{msg}</div>;
 }
 
-function KIQ01() {
-    const { data, loading, error } = useReport<{ descricao: string; quantidade: number }[]>('treatments-count');
+function KIQ01({ filter }: { filter: DateFilter }) {
+    const { data, loading, error } = useReport<{ descricao: string; quantidade: number }[]>('treatments-count', filter);
     return (
-        <Card kiq="KIQ 01" title="Tratamentos mais realizados">
+        <Card title="Tratamentos mais realizados">
             {loading ? <Skeleton /> : error ? <Err msg={error} /> : (
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={data ?? []} margin={{ top: 4, right: 16, left: 0, bottom: 70 }}>
@@ -78,10 +91,10 @@ function KIQ01() {
     );
 }
 
-function KIQ02() {
-    const { data, loading, error } = useReport<{ descricao: string; receita_total: number; recebido: number }[]>('treatments-revenue');
+function KIQ02({ filter }: { filter: DateFilter }) {
+    const { data, loading, error } = useReport<{ descricao: string; receita_total: number; recebido: number }[]>('treatments-revenue', filter);
     return (
-        <Card kiq="KIQ 02" title="Tratamentos que geram maior receita">
+        <Card title="Tratamentos que geram maior receita">
             {loading ? <Skeleton /> : error ? <Err msg={error} /> : (
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={data ?? []} margin={{ top: 4, right: 16, left: 16, bottom: 70 }}>
@@ -98,10 +111,10 @@ function KIQ02() {
 }
 
 type CostRow = { descricao: string; valor_medio: number; pago_medio: number; pendente_medio: number; margem_pct: number };
-function KIQ0304() {
-    const { data, loading, error } = useReport<CostRow[]>('treatments-cost');
+function KIQ0304({ filter }: { filter: DateFilter }) {
+    const { data, loading, error } = useReport<CostRow[]>('treatments-cost', filter);
     return (
-        <Card kiq="KIQ 03 + 04" title="Custo médio e margem de recebimento por procedimento">
+        <Card title="Custo médio e margem de recebimento por procedimento">
             {loading ? <Skeleton /> : error ? <Err msg={error} /> : (
                 <div className="space-y-4">
                     <div className="flex gap-4 text-xs mb-1">
@@ -156,13 +169,13 @@ type ProfileRow = {
     idade_media: number | null;
     faixas: { faixa: string; quantidade: number }[];
 };
-function KIQ05() {
-    const { data, loading, error } = useReport<ProfileRow[]>('patient-profiles');
+function KIQ05({ filter }: { filter: DateFilter }) {
+    const { data, loading, error } = useReport<ProfileRow[]>('patient-profiles', filter);
     const [selected, setSelected] = useState(0);
     const row = data?.[selected];
 
     return (
-        <Card kiq="KIQ 05" title="Perfil dos pacientes por tipo de tratamento">
+        <Card title="Perfil dos pacientes por tipo de tratamento">
             {loading ? <Skeleton /> : error ? <Err msg={error} /> : (
                 <div className="space-y-4">
                     <div className="flex gap-2 flex-wrap">
@@ -221,15 +234,15 @@ type ReturnData = {
     taxa_retorno_pct: number;
     alerta: AlertaRow[];
 };
-function KIQ06() {
-    const { data, loading, error } = useReport<ReturnData>('return-rate');
+function KIQ06({ filter }: { filter: DateFilter }) {
+    const { data, loading, error } = useReport<ReturnData>('return-rate', filter);
     const pieData = data ? [
         { name: 'Retornaram (≤ 90 dias)', value: data.pacientes_retorno },
         { name: 'Sem retorno (> 90 dias)', value: data.pacientes_sem_retorno }
     ] : [];
 
     return (
-        <Card kiq="KIQ 06" title="Taxa de retorno dos pacientes">
+        <Card title="Taxa de retorno dos pacientes">
             {loading ? <Skeleton /> : error ? <Err msg={error} /> : data && (
                 <div className="space-y-6">
                     <div className="grid md:grid-cols-2 gap-6 items-center">
@@ -322,12 +335,12 @@ type CancelRow = {
     realizados: number;
     statuses: { status: string; quantidade: number }[];
 };
-function KIQ07() {
-    const { data, loading, error } = useReport<CancelRow[]>('abandonment');
+function KIQ07({ filter }: { filter: DateFilter }) {
+    const { data, loading, error } = useReport<CancelRow[]>('abandonment', filter);
     const [expanded, setExpanded] = useState<string | null>(null);
 
     return (
-        <Card kiq="KIQ 07" title="Tratamentos com maior taxa de cancelamento / desmarcação">
+        <Card title="Tratamentos com maior taxa de cancelamento / desmarcação">
             {loading ? <Skeleton /> : error ? <Err msg={error} /> : (data ?? []).length === 0 ? (
                 <div className="py-10 text-center text-sm text-gray-400">
                     Nenhum agendamento de tratamento encontrado na Agenda.
@@ -407,46 +420,96 @@ function KIQ07() {
 type ReportId = 'kiq01' | 'kiq02' | 'kiq0304' | 'kiq05' | 'kiq06' | 'kiq07';
 
 const REPORT_MENU: { id: ReportId; title: string; description: string; icon: React.ElementType }[] = [
+    { id: 'kiq01',   title: 'Tratamentos mais realizados',         description: 'Quais procedimentos são executados com maior frequência no consultório.',               icon: BarChart3   },
+    { id: 'kiq02',   title: 'Tratamentos que geram maior receita', description: 'Quais tratamentos contribuem mais para o faturamento total.',                           icon: TrendingUp  },
+    { id: 'kiq0304', title: 'Custo médio e margem por procedimento',description: 'Valor médio cobrado e percentual efetivamente recebido por tipo de tratamento.',      icon: Calculator  },
+    { id: 'kiq05',   title: 'Perfil dos pacientes por tratamento', description: 'Distribuição etária e quantidade de pacientes por tipo de procedimento.',               icon: Users       },
+    { id: 'kiq06',   title: 'Taxa de retorno dos pacientes',       description: 'Pacientes que retornaram nos últimos 3 meses e alerta dos que não voltaram.',           icon: Repeat      },
+    { id: 'kiq07',   title: 'Cancelamentos e desmarcações',        description: 'Quais tratamentos têm maior taxa de cancelamento ou desmarcação na agenda.',            icon: XCircle     },
+];
+
+const SHORTCUTS: { label: string; getRange: () => { dateFrom: string; dateTo: string } }[] = [
     {
-        id: 'kiq01',
-        title: 'Tratamentos mais realizados',
-        description: 'Quais procedimentos são executados com maior frequência no consultório.',
-        icon: BarChart3
+        label: 'Este mês',
+        getRange: () => {
+            const now = new Date();
+            return {
+                dateFrom: toISO(new Date(now.getFullYear(), now.getMonth(), 1)),
+                dateTo:   toISO(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+            };
+        },
     },
     {
-        id: 'kiq02',
-        title: 'Tratamentos que geram maior receita',
-        description: 'Quais tratamentos contribuem mais para o faturamento total.',
-        icon: TrendingUp
+        label: 'Último trimestre',
+        getRange: () => {
+            const now = new Date();
+            const from = new Date(now);
+            from.setMonth(from.getMonth() - 3);
+            return { dateFrom: toISO(from), dateTo: toISO(now) };
+        },
     },
     {
-        id: 'kiq0304',
-        title: 'Custo médio e margem por procedimento',
-        description: 'Valor médio cobrado e percentual efetivamente recebido por tipo de tratamento.',
-        icon: Calculator
+        label: 'Este ano',
+        getRange: () => {
+            const now = new Date();
+            return {
+                dateFrom: toISO(new Date(now.getFullYear(), 0, 1)),
+                dateTo:   toISO(now),
+            };
+        },
     },
     {
-        id: 'kiq05',
-        title: 'Perfil dos pacientes por tratamento',
-        description: 'Distribuição etária e quantidade de pacientes por tipo de procedimento.',
-        icon: Users
-    },
-    {
-        id: 'kiq06',
-        title: 'Taxa de retorno dos pacientes',
-        description: 'Pacientes que retornaram nos últimos 3 meses e alerta dos que não voltaram.',
-        icon: Repeat
-    },
-    {
-        id: 'kiq07',
-        title: 'Cancelamentos e desmarcações',
-        description: 'Quais tratamentos têm maior taxa de cancelamento ou desmarcação na agenda.',
-        icon: XCircle
+        label: 'Tudo',
+        getRange: () => ({ dateFrom: '', dateTo: '' }),
     },
 ];
 
+function DateFilterBar({ filter, onChange }: { filter: DateFilter; onChange: (f: DateFilter) => void }) {
+    const activeShortcut = SHORTCUTS.find(s => {
+        const r = s.getRange();
+        return r.dateFrom === filter.dateFrom && r.dateTo === filter.dateTo;
+    })?.label ?? null;
+
+    return (
+        <div className="bg-white rounded-lg shadow p-4 flex flex-wrap items-center gap-3">
+            <CalendarDays className="w-4 h-4 text-gray-400 shrink-0" />
+            <div className="flex items-center gap-2">
+                <input
+                    type="date"
+                    value={filter.dateFrom}
+                    onChange={e => onChange({ ...filter, dateFrom: e.target.value })}
+                    className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <span className="text-gray-400 text-sm">até</span>
+                <input
+                    type="date"
+                    value={filter.dateTo}
+                    onChange={e => onChange({ ...filter, dateTo: e.target.value })}
+                    className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+            </div>
+            <div className="flex gap-1.5 flex-wrap">
+                {SHORTCUTS.map(s => (
+                    <button
+                        key={s.label}
+                        onClick={() => onChange(s.getRange())}
+                        className={`px-3 py-1 rounded-full text-xs transition-colors ${
+                            activeShortcut === s.label
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                    >
+                        {s.label}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 export function Reports() {
     const [selected, setSelected] = useState<ReportId | null>(null);
+    const [filter, setFilter] = useState<DateFilter>({ dateFrom: '', dateTo: '' });
 
     const current = REPORT_MENU.find(r => r.id === selected);
 
@@ -471,6 +534,10 @@ export function Reports() {
                 </div>
             </div>
 
+            {selected && (
+                <DateFilterBar filter={filter} onChange={setFilter} />
+            )}
+
             {!selected && (
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     {REPORT_MENU.map(report => {
@@ -494,12 +561,12 @@ export function Reports() {
                 </div>
             )}
 
-            {selected === 'kiq01'   && <KIQ01 />}
-            {selected === 'kiq02'   && <KIQ02 />}
-            {selected === 'kiq0304' && <KIQ0304 />}
-            {selected === 'kiq05'   && <KIQ05 />}
-            {selected === 'kiq06'   && <KIQ06 />}
-            {selected === 'kiq07'   && <KIQ07 />}
+            {selected === 'kiq01'   && <KIQ01   filter={filter} />}
+            {selected === 'kiq02'   && <KIQ02   filter={filter} />}
+            {selected === 'kiq0304' && <KIQ0304 filter={filter} />}
+            {selected === 'kiq05'   && <KIQ05   filter={filter} />}
+            {selected === 'kiq06'   && <KIQ06   filter={filter} />}
+            {selected === 'kiq07'   && <KIQ07   filter={filter} />}
         </div>
     );
 }

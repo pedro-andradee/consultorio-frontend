@@ -10,41 +10,60 @@ export default class ReportsService {
         return db;
     }
 
-    async treatmentsCount() {
+    #dateInputs(request, filter) {
+        request
+            .input('dateFrom', db.sql.Date, filter?.dateFrom ? new Date(filter.dateFrom) : null)
+            .input('dateTo',   db.sql.Date, filter?.dateTo   ? new Date(filter.dateTo)   : null);
+        return request;
+    }
+
+    async treatmentsCount(filter = {}) {
         const pool = await this.pool();
-        const result = await pool.request().query(`
+        const request = this.#dateInputs(pool.request(), filter);
+        const result = await request.query(`
             SELECT t.Descricao AS descricao, COUNT(*) AS quantidade
             FROM Tratamento t
+            LEFT JOIN Agenda ag ON t.ID_Agenda = ag.ID
+            WHERE (@dateFrom IS NULL OR ag.Data >= @dateFrom)
+              AND (@dateTo   IS NULL OR ag.Data <= @dateTo)
             GROUP BY t.Descricao
             ORDER BY quantidade DESC
         `);
         return result.recordset;
     }
 
-    async treatmentsRevenue() {
+    async treatmentsRevenue(filter = {}) {
         const pool = await this.pool();
-        const result = await pool.request().query(`
+        const request = this.#dateInputs(pool.request(), filter);
+        const result = await request.query(`
             SELECT t.Descricao AS descricao,
                    SUM(f.Valor) AS receita_total,
                    SUM(f.Pago)  AS recebido
             FROM Financeiro f
             JOIN Tratamento t ON f.ID_Tratamento = t.ID
+            LEFT JOIN Agenda ag ON t.ID_Agenda = ag.ID
+            WHERE (@dateFrom IS NULL OR ag.Data >= @dateFrom)
+              AND (@dateTo   IS NULL OR ag.Data <= @dateTo)
             GROUP BY t.Descricao
             ORDER BY receita_total DESC
         `);
         return result.recordset;
     }
 
-    async treatmentsCost() {
+    async treatmentsCost(filter = {}) {
         const pool = await this.pool();
-        const result = await pool.request().query(`
+        const request = this.#dateInputs(pool.request(), filter);
+        const result = await request.query(`
             SELECT t.Descricao AS descricao,
                    AVG(CAST(t.Valor AS FLOAT))     AS valor_medio,
                    AVG(CAST(f.Pago AS FLOAT))      AS pago_medio,
                    AVG(CAST(f.Pendente AS FLOAT))  AS pendente_medio
             FROM Tratamento t
             LEFT JOIN Financeiro f ON f.ID_Tratamento = t.ID
+            LEFT JOIN Agenda ag ON t.ID_Agenda = ag.ID
             WHERE t.Valor IS NOT NULL
+              AND (@dateFrom IS NULL OR ag.Data >= @dateFrom)
+              AND (@dateTo   IS NULL OR ag.Data <= @dateTo)
             GROUP BY t.Descricao
             ORDER BY valor_medio DESC
         `);
@@ -59,9 +78,10 @@ export default class ReportsService {
         }));
     }
 
-    async patientProfiles() {
+    async patientProfiles(filter = {}) {
         const pool = await this.pool();
-        const result = await pool.request().query(`
+        const request = this.#dateInputs(pool.request(), filter);
+        const result = await request.query(`
             SELECT t.Descricao AS descricao,
                    COUNT(DISTINCT t.ID_Paciente) AS total_pacientes,
                    AVG(CAST(DATEDIFF(YEAR, p.Data_Nascimento, GETDATE()) AS FLOAT)) AS idade_media,
@@ -71,6 +91,9 @@ export default class ReportsService {
                    COUNT(CASE WHEN DATEDIFF(YEAR, p.Data_Nascimento, GETDATE()) > 55  THEN 1 END) AS faixa_mais55
             FROM Tratamento t
             JOIN dbo.Pacientes p ON t.ID_Paciente = p.ID
+            LEFT JOIN Agenda ag ON t.ID_Agenda = ag.ID
+            WHERE (@dateFrom IS NULL OR ag.Data >= @dateFrom)
+              AND (@dateTo   IS NULL OR ag.Data <= @dateTo)
             GROUP BY t.Descricao
             ORDER BY total_pacientes DESC
         `);
@@ -87,10 +110,10 @@ export default class ReportsService {
         }));
     }
 
-    async returnRate() {
+    async returnRate(filter = {}) {
         const pool = await this.pool();
-
-        const result = await pool.request().query(`
+        const request = this.#dateInputs(pool.request(), filter);
+        const result = await request.query(`
             SELECT
                 p.ID   AS patientId,
                 p.Nome AS patientName,
@@ -99,12 +122,14 @@ export default class ReportsService {
                 DATEDIFF(DAY, MAX(a.Data), GETDATE()) AS dias_sem_retorno
             FROM dbo.Pacientes p
             JOIN Agenda a ON a.ID_Paciente = p.ID
+            WHERE (@dateFrom IS NULL OR a.Data >= @dateFrom)
+              AND (@dateTo   IS NULL OR a.Data <= @dateTo)
             GROUP BY p.ID, p.Nome
         `);
 
         const rows = result.recordset;
         const total = rows.length;
-        const retornaram = rows.filter(r => r.dias_sem_retorno <= 90);
+        const retornaram    = rows.filter(r => r.dias_sem_retorno <= 90);
         const naoRetornaram = rows
             .filter(r => r.dias_sem_retorno > 90)
             .sort((a, b) => b.dias_sem_retorno - a.dias_sem_retorno);
@@ -126,10 +151,10 @@ export default class ReportsService {
         };
     }
 
-    async abandonment() {
+    async abandonment(filter = {}) {
         const pool = await this.pool();
-
-        const result = await pool.request().query(`
+        const request = this.#dateInputs(pool.request(), filter);
+        const result = await request.query(`
             SELECT
                 COALESCE(t.Descricao, a.Descricao, 'Sem descrição') AS descricao,
                 s.Nome AS status_nome,
@@ -137,16 +162,18 @@ export default class ReportsService {
             FROM Agenda a
             JOIN Status_Agenda s ON a.ID_Status = s.ID
             LEFT JOIN Tratamento t ON t.ID_Agenda = a.ID
-            WHERE a.IsTratamento = 1 OR t.ID IS NOT NULL
+            WHERE (a.IsTratamento = 1 OR t.ID IS NOT NULL)
+              AND (@dateFrom IS NULL OR a.Data >= @dateFrom)
+              AND (@dateTo   IS NULL OR a.Data <= @dateTo)
             GROUP BY COALESCE(t.Descricao, a.Descricao, 'Sem descrição'), s.Nome
             ORDER BY descricao, quantidade DESC
         `);
 
-        const CANCEL_PATTERNS  = ['cancel', 'desmarcad', 'falt', 'não compareceu', 'ausente', 'desistiu', 'remarcad'];
+        const CANCEL_PATTERNS   = ['cancel', 'desmarcad', 'falt', 'não compareceu', 'ausente', 'desistiu', 'remarcad'];
         const AGENDADO_PATTERNS = ['agendad', 'marcad', 'pendente', 'aguardando'];
 
-        const isCancelamento = (s) => CANCEL_PATTERNS.some(p => s.toLowerCase().includes(p));
-        const isAgendado      = (s) => AGENDADO_PATTERNS.some(p => s.toLowerCase().includes(p));
+        const isCancelamento = (s) => CANCEL_PATTERNS.some(p  => s.toLowerCase().includes(p));
+        const isAgendado     = (s) => AGENDADO_PATTERNS.some(p => s.toLowerCase().includes(p));
 
         const map = new Map();
         for (const row of result.recordset) {
@@ -156,8 +183,8 @@ export default class ReportsService {
             const entry = map.get(row.descricao);
             entry.total += row.quantidade;
             entry.statuses.push({ status: row.status_nome, quantidade: row.quantidade });
-            if (isCancelamento(row.status_nome))     entry.cancelamentos += row.quantidade;
-            else if (isAgendado(row.status_nome))    entry.agendados     += row.quantidade;
+            if (isCancelamento(row.status_nome))  entry.cancelamentos += row.quantidade;
+            else if (isAgendado(row.status_nome)) entry.agendados     += row.quantidade;
         }
 
         return Array.from(map.values())
