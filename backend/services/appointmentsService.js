@@ -58,14 +58,14 @@ export default class AppointmentsService {
         const { patientId, doctorId, date, statusId = 1, notes = '', duracao = 60, isTratamento = false } = data;
         const dataDate = new Date(date);
         const result = await pool.request()
-            .input('patientId', patientId)
-            .input('doctorId', doctorId)
-            .input('data', dataDate.toISOString().split('T')[0])
-            .input('hora', dataDate.toTimeString().split(' ')[0])
-            .input('statusId', statusId)
-            .input('notes', notes)
-            .input('duracao', duracao)
-            .input('isTratamento', isTratamento)
+            .input('patientId', db.sql.Int, patientId)
+            .input('doctorId', db.sql.Int, doctorId ?? null)
+            .input('data', db.sql.Date, dataDate)
+            .input('hora', db.sql.Time, dataDate)
+            .input('statusId', db.sql.Int, statusId)
+            .input('notes', db.sql.NVarChar, notes ?? '')
+            .input('duracao', db.sql.Int, duracao)
+            .input('isTratamento', db.sql.Bit, isTratamento ? 1 : 0)
             .query(`
                 INSERT INTO Agenda (ID_Paciente, ID_Dentista, Data, Hora, ID_Status, Descricao, Duracao, IsTratamento)
                 OUTPUT INSERTED.ID, INSERTED.ID_Paciente, INSERTED.ID_Dentista, INSERTED.Data, INSERTED.Hora, INSERTED.ID_Status, INSERTED.Descricao, INSERTED.Duracao, INSERTED.IsTratamento
@@ -83,34 +83,34 @@ export default class AppointmentsService {
 
         if (patientId !== undefined) {
             setParts.push('ID_Paciente = @patientId');
-            inputs.patientId = patientId;
+            inputs.patientId = { type: db.sql.Int, value: patientId };
         }
         if (doctorId !== undefined) {
             setParts.push('ID_Dentista = @doctorId');
-            inputs.doctorId = doctorId;
+            inputs.doctorId = { type: db.sql.Int, value: doctorId ?? null };
         }
         if (date !== undefined) {
             const dataDate = new Date(date);
             setParts.push('Data = @data');
             setParts.push('Hora = @hora');
-            inputs.data = dataDate.toISOString().split('T')[0];
-            inputs.hora = dataDate.toTimeString().split(' ')[0];
+            inputs.data = { type: db.sql.Date, value: dataDate };
+            inputs.hora = { type: db.sql.Time, value: dataDate };
         }
         if (statusId !== undefined) {
             setParts.push('ID_Status = @statusId');
-            inputs.statusId = statusId;
+            inputs.statusId = { type: db.sql.Int, value: statusId };
         }
         if (notes !== undefined) {
             setParts.push('Descricao = @notes');
-            inputs.notes = notes;
+            inputs.notes = { type: db.sql.NVarChar, value: notes ?? '' };
         }
         if (duracao !== undefined) {
             setParts.push('Duracao = @duracao');
-            inputs.duracao = duracao;
+            inputs.duracao = { type: db.sql.Int, value: duracao };
         }
         if (isTratamento !== undefined) {
             setParts.push('IsTratamento = @isTratamento');
-            inputs.isTratamento = isTratamento;
+            inputs.isTratamento = { type: db.sql.Bit, value: isTratamento ? 1 : 0 };
         }
 
         if (setParts.length === 0) return await this.findById(id);
@@ -120,9 +120,10 @@ export default class AppointmentsService {
             OUTPUT INSERTED.ID, INSERTED.ID_Paciente, INSERTED.ID_Dentista, INSERTED.Data, INSERTED.Hora, INSERTED.ID_Status, INSERTED.Descricao, INSERTED.Duracao, INSERTED.IsTratamento
             WHERE ID = @id
         `;
-        const request = pool.request().input('id', id);
+        const request = pool.request().input('id', db.sql.Int, id);
         Object.keys(inputs).forEach(key => {
-            if (key !== 'id') request.input(key, inputs[key]);
+            const { type, value } = inputs[key];
+            request.input(key, type, value);
         });
         const result = await request.query(q);
         const row = result.recordset[0];

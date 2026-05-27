@@ -302,7 +302,7 @@ export function Calendar() {
 
   const buildPayload = () => ({
     patientId: Number(form.patientId),
-    doctorId: Number(form.doctorId),
+    doctorId: form.doctorId ? Number(form.doctorId) : null,
     date: `${form.date}T${form.time}:00`,
     duracao: Number(form.duracao),
     isTratamento: form.isTratamento,
