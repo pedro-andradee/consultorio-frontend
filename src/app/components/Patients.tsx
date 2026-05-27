@@ -10,12 +10,14 @@ function authHeaders() {
   return headers;
 }
 
-function formatPhone(phone: string): string {
-  const cleaned = phone.replace(/\D/g, '');
-  if (cleaned.length === 0) return '';
-  if (cleaned.length <= 2) return `(${cleaned}`;
-  if (cleaned.length <= 7) return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2)}`;
-  return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7, 11)}`;
+function formatPhone(raw: string | null | undefined): string {
+  if (!raw) return '';
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length === 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
 }
 
 function unformatPhone(phone: string): string {
@@ -459,7 +461,7 @@ export function Patients({ role }: PatientsProps) {
                 className={`w-full text-left p-4 border-b border-gray-200 hover:bg-gray-50 transition-colors ${selectedPatient?.id === patient.id ? 'bg-blue-50' : ''}`}
               >
                 <div className="text-gray-900">{patient.name}</div>
-                <div className="text-sm text-gray-500 mt-1">{patient.phone}</div>
+                <div className="text-sm text-gray-500 mt-1">{formatPhone(patient.phone)}</div>
               </button>
             ))}
             {!loading && filteredPatients.length === 0 && (
@@ -495,7 +497,7 @@ export function Patients({ role }: PatientsProps) {
                     </div>
                     <div className="flex items-center gap-3">
                       <Phone className="w-5 h-5 text-gray-400" />
-                      <span className="text-gray-900">{selectedPatient.phone}</span>
+                      <span className="text-gray-900">{formatPhone(selectedPatient.phone)}</span>
                     </div>
                   </div>
                 </div>
