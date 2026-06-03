@@ -6,18 +6,36 @@ import { Login } from './components/Login';
 import { Reports } from './components/Reports';
 import { UserCircle, CalendarDays, DollarSign, BarChart3, LogOut } from 'lucide-react';
 
+function getStoredSession(): { username: string; role: string } | null {
+  try {
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    if (!token || !userStr) return null;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (payload.exp && Date.now() / 1000 > payload.exp) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return null;
+    }
+    return JSON.parse(userStr);
+  } catch {
+    return null;
+  }
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<'patients' | 'calendar' | 'billing' | 'reports'>('patients');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ username: string; role: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ username: string; role: string } | null>(getStoredSession);
+
+  const isAuthenticated = currentUser !== null;
 
   const handleLogin = (username: string, role: 'admin' | 'dentist' | 'receptionist') => {
-    setIsAuthenticated(true);
     setCurrentUser({ username, role });
   };
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setCurrentUser(null);
     setActiveTab('patients');
   };

@@ -35,7 +35,6 @@ export function Login({ onLogin }: LoginProps) {
 
       const token = body.token ?? body?.data?.token;
       const user = body.user ?? body?.data?.user ?? {};
-      if (token) localStorage.setItem('token', token);
 
       let role = (user.type as string) || (user.role as string) || (body.role as string) || 'receptionist';
       if (!['admin', 'dentist', 'receptionist'].includes(role)) {
@@ -44,7 +43,13 @@ export function Login({ onLogin }: LoginProps) {
         else role = 'receptionist';
       }
 
-      onLogin(user.name || user.username || username, role as 'admin' | 'dentist' | 'receptionist');
+      const displayName = user.name || user.username || username;
+      if (token) {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify({ username: displayName, role }));
+      }
+
+      onLogin(displayName, role as 'admin' | 'dentist' | 'receptionist');
     } catch (err: any) {
       setError(err?.message || 'Erro de rede');
     } finally {
