@@ -614,35 +614,6 @@ export function Patients({ role }: PatientsProps) {
                 )}
               </div>
 
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-sm text-gray-500 mb-4">Histórico de Orçamentos</h3>
-                <div className="space-y-3">
-                  {selectedPatient.quotes?.length ? (
-                    selectedPatient.quotes.map((quote) => (
-                      <div key={quote.id} className="p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center justify-between mb-3 gap-3">
-                          <div className="text-gray-900">{quote.procedure}</div>
-                          <div className={`rounded-full px-2 py-1 text-xs font-semibold ${quote.status === 'Aprovado' ? 'bg-green-100 text-green-700' : quote.status === 'Rejeitado' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                            {quote.status}
-                          </div>
-                        </div>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <div>
-                            <div className="text-sm text-gray-500">Valor R$</div>
-                            <div className="text-gray-900">{quote.value}</div>
-                          </div>
-                          <div>
-                            <div className="text-sm text-gray-500">Data</div>
-                            <div className="text-gray-900">{quote.date}</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-3 bg-gray-50 rounded-lg text-gray-500">Nenhum orçamento registrado.</div>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         ) : (
