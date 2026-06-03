@@ -1,5 +1,6 @@
 import * as db from '../db.js';
 import Appointment from '../entities/appointment.js';
+import TreatmentsService from './treatmentsService.js';
 
 export default class AppointmentsService {
     constructor() {}
@@ -127,7 +128,30 @@ export default class AppointmentsService {
         });
         const result = await request.query(q);
         const row = result.recordset[0];
-        return row ? await this.findById(row.ID) : null;
+        const updated = row ? await this.findById(row.ID) : null;
+
+        if (updated && updated.statusId === 2 && updated.isTratamento) {
+            await this._createTreatmentIfNotExists(updated);
+        }
+
+        return updated;
+    }
+
+    async _createTreatmentIfNotExists(appointment) {
+        const pool = await this.pool();
+        const check = await pool.request()
+            .input('agendaId', db.sql.Int, appointment.id)
+            .query('SELECT ID FROM Tratamento WHERE ID_Agenda = @agendaId');
+
+        if (check.recordset.length > 0) return;
+
+        const ts = new TreatmentsService();
+        await ts.create({
+            patientId: appointment.patientId,
+            dentistId: appointment.doctorId,
+            agendaId: appointment.id,
+            descricao: appointment.notes || 'Tratamento',
+        });
     }
 
     async delete(id) {
