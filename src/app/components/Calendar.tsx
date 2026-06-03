@@ -150,6 +150,7 @@ function AppointmentFormFields({ form, onChange, patients, dentists, formError }
           onChange={e => onChange('notes', e.target.value)}
           className="w-full px-3 py-2 border rounded-lg"
           rows={3}
+          required={form.isTratamento}
         />
       </div>
 
