@@ -508,7 +508,7 @@ export function Patients({ role }: PatientsProps) {
                     <div>
                       <div className="text-sm text-gray-500">Data de Nascimento</div>
                       <div className="text-gray-900">
-                        {selectedPatient.dateOfBirth ? new Date(selectedPatient.dateOfBirth).toLocaleDateString() : 'Não informado'}
+                        {selectedPatient.dateOfBirth ? new Date(selectedPatient.dateOfBirth).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'Não informado'}
                       </div>
                     </div>
                     <div>
