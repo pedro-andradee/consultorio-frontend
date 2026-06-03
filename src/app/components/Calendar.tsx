@@ -143,7 +143,7 @@ function AppointmentFormFields({ form, onChange, patients, dentists, formError }
 
       <div>
         <label className="block text-sm text-gray-700 mb-1">
-          {form.isTratamento ? 'Descrição do Tratamento' : 'Observações'}
+          {form.isTratamento ? <>Descrição do Tratamento <span className="text-red-500">*</span></> : 'Observações'}
         </label>
         <textarea
           value={form.notes}
