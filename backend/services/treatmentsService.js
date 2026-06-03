@@ -93,6 +93,27 @@ export default class TreatmentsService {
                 WHERE ID = @id
             `);
 
+        if (valor !== null) {
+            const fin = await pool.request()
+                .input('id', id)
+                .query('SELECT Pago FROM Financeiro WHERE ID_Tratamento = @id');
+            if (fin.recordset.length > 0) {
+                const pago = Number(fin.recordset[0].Pago) || 0;
+                const novoValor = Number(valor);
+                const pendente = novoValor - pago;
+                const status = pendente <= 0 ? 1 : pago > 0 ? 2 : 2;
+                await pool.request()
+                    .input('id', id)
+                    .input('valor', novoValor)
+                    .input('pendente', pendente)
+                    .input('status', status)
+                    .query(`
+                        UPDATE Financeiro SET Valor = @valor, Pendente = @pendente, Status = @status
+                        WHERE ID_Tratamento = @id
+                    `);
+            }
+        }
+
         const rows = await this.findByPatientId(row.patientId);
         return rows.find(r => r.id === Number(id)) || null;
     }
