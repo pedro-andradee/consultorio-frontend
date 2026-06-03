@@ -31,7 +31,11 @@ router.get('/:id', authenticateToken, authorizeRole('admin'), async (req, res) =
 
 router.put('/:id', authenticateToken, authorizeRole('admin'), async (req, res) => {
     try {
-        const updated = await service.update(req.params.id, req.body);
+        const data = { ...req.body };
+        if (data.password) {
+            data.password = await controller.hashPassword(data.password);
+        }
+        const updated = await service.update(req.params.id, data);
         if (!updated) return res.status(404).json({ message: 'Usuário não encontrado' });
         res.status(200).json(updated);
     } catch (err) {

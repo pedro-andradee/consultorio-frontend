@@ -5,7 +5,8 @@ import { Calendar } from './components/Calendar';
 import { Billing } from './components/Billing';
 import { Login } from './components/Login';
 import { Reports } from './components/Reports';
-import { UserCircle, CalendarDays, DollarSign, BarChart3, LogOut } from 'lucide-react';
+import { Users } from './components/Users';
+import { UserCircle, CalendarDays, DollarSign, BarChart3, LogOut, UsersRound } from 'lucide-react';
 
 function getStoredSession(): { username: string; role: string } | null {
   try {
@@ -111,6 +112,12 @@ export default function App() {
                 Relatórios
               </button>
             )}
+            {canAccessReports && (
+              <button onClick={() => navigate('/usuarios')} className={navLink('/usuarios')}>
+                <UsersRound className="w-5 h-5" />
+                Usuários
+              </button>
+            )}
           </div>
         </div>
       </nav>
@@ -122,6 +129,7 @@ export default function App() {
           <Route path="/agenda" element={<Calendar />} />
           <Route path="/financeiro" element={canAccessBilling ? <Billing /> : <Navigate to="/pacientes" replace />} />
           <Route path="/relatorios" element={canAccessReports ? <Reports /> : <Navigate to="/pacientes" replace />} />
+          <Route path="/usuarios" element={canAccessReports ? <Users /> : <Navigate to="/pacientes" replace />} />
           <Route path="*" element={<Navigate to="/pacientes" replace />} />
         </Routes>
       </main>

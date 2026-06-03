@@ -62,7 +62,7 @@ export default class UsersService {
 
     async update(id, data) {
         const pool = await this.pool();
-        const { name, type, isAdmin } = data;
+        const { name, type, isAdmin, password } = data;
         let setParts = [];
         let inputs = { id };
 
@@ -77,6 +77,10 @@ export default class UsersService {
         if (isAdmin !== undefined) {
             setParts.push('IsAdmin = @isAdmin');
             inputs.isAdmin = isAdmin;
+        }
+        if (password !== undefined) {
+            setParts.push('Senha = @password');
+            inputs.password = password;
         }
 
         if (setParts.length === 0) return await this.findById(id);
