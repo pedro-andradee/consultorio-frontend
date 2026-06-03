@@ -79,7 +79,7 @@ export default class AppointmentsService {
         const pool = await this.pool();
         const { patientId, doctorId, date, statusId, notes, duracao, isTratamento } = data;
         let setParts = [];
-        let inputs = { id };
+        let inputs = {};
 
         if (patientId !== undefined) {
             setParts.push('ID_Paciente = @patientId');
