@@ -69,7 +69,7 @@ export default function App() {
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl text-gray-900">Consultório Odontológico</h1>
+            <h1 className="text-xl text-gray-900">SaveDental</h1>
             <div className="flex items-center gap-4">
               <div className="text-sm text-gray-600">
                 <span className="text-gray-900">{currentUser.username}</span>

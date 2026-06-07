@@ -178,4 +178,9 @@
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
   }
+
+  #logo{
+          display: flex;
+        justify-content: center;
+  }
 }
