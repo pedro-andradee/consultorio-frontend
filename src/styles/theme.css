@@ -184,6 +184,8 @@
         justify-content: center;
   }
    #logo2{
+          display: flex;
+        justify-content: left;
         width: 50%;
   }
 }
