@@ -172,7 +172,7 @@ function toDateInput(date: Date) {
 }
 
 function toTimeInput(date: Date) {
-  return date.toTimeString().slice(0, 5);
+  return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
 }
 
 export function Calendar() {
@@ -509,7 +509,7 @@ export function Calendar() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Clock className="w-4 h-4 shrink-0" />
-                      {time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false })} ({apt.duration} min)
+                      {`${String(time.getUTCHours()).padStart(2, '0')}:${String(time.getUTCMinutes()).padStart(2, '0')}`} ({apt.duration} min)
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <User className="w-4 h-4 shrink-0" />
